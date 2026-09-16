@@ -71,9 +71,9 @@ flowchart TD
 		TOP3 --> CONFIDENCE{Top score >= 0.35?}
 		CONFIDENCE -->|No| HYDE[HyDEGenerator]
 		HYDE --> HYBRID2[Second hybrid retrieval]
-		HYBRID2 --> COMPARE{HyDE score higher?}
+		HYBRID2 --> COMPARE{HyDE score >= 0.35?}
 		COMPARE -->|Yes| CONTEXT[ContextBuilder]
-		COMPARE -->|No| CONTEXT
+		COMPARE -->|No| REFUSE[Direct refusal: no info]
 		CONFIDENCE -->|Yes| CONTEXT
 
 		CONTEXT --> LLM[LLMClient]
@@ -86,7 +86,9 @@ flowchart TD
 		OPENROUTER --> PARSE
 		OFFLINE --> PARSE
 		PARSE --> TRACE2[SQLite trace]
+		REFUSE --> TRACE3[SQLite trace]
 		TRACE2 --> RESPONSE
+		TRACE3 --> RESPONSE
 ```
 
 ## Query Processing
@@ -193,6 +195,8 @@ CONFIDENCE_THRESHOLD = 0.35
 ```
 
 When the score is below `0.35`, `HyDEGenerator` creates a hypothetical policy passage using the fast LLM path. The passage is sent through the same cosine, BM25, RRF, and reranking pipeline. If the HyDE result scores higher, it replaces the first-pass result.
+
+If the HyDE score also remains below the confidence threshold, the system returns a "no information" response directly without making an LLM generation call. The response is: "The provided Cerulean Systems documentation does not contain enough information to answer this question."
 
 ## LLM Models and Fallbacks
 
